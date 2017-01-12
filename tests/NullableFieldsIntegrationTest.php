@@ -42,6 +42,13 @@ class NullableFieldsIntegrationTest extends PHPUnit_Framework_TestCase
             $table->increments('id');
             $table->timestamp('last_tested_at')->nullable()->default(null);
         });
+
+        $manager->schema()->create('foo', function ($table) {
+            $table->increments('id');
+            $table->boolean('foo')->default(false)->nullable();
+            $table->boolean('bar')->default(false)->nullable();
+            $table->string('baz');
+        });
     }
 
 
@@ -166,6 +173,17 @@ class NullableFieldsIntegrationTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals('2016-12-22 09:12:00', (string) $date->last_tested_at);
     }
+
+    /** @test */
+    public function it_does_not_update_fields_when_they_are_not_explicitly_specified()
+    {
+        $foo = Foo::create(['foo' => false, 'bar' => false, 'baz' => 'something']);
+        $foo->doSomething();
+
+        $this->assertTrue($foo->foo);
+        $this->assertTrue($foo->bar);
+        $this->assertEquals('accessor_something', $foo->baz);
+    }
 }
 
 class UserProfile extends Model
@@ -274,4 +292,22 @@ class DateTest extends Model
     protected $nullable = ['last_tested_at'];
 
     public $timestamps = false;
+}
+
+class Foo extends Model
+{
+    protected $table = 'foo';
+    protected $fillable = ['foo', 'bar', 'baz'];
+    protected $nullable = ['foo', 'bar'];
+    public $timestamps = false;
+
+    public function doSomething()
+    {
+        $this->update(['foo' => true, 'bar' => true]);
+    }
+
+    public function getBazAttribute($value)
+    {
+        return 'accessor_'.$value;
+    }
 }
